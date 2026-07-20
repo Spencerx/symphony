@@ -14,7 +14,7 @@ This directory contains the current Elixir/OTP implementation of Symphony, based
 ## How it works
 
 1. Polls the configured tracker for candidate work (included adapters: Linear, GitHub Issues, Jira
-   Cloud, and Asana)
+   Cloud, Asana, and GitLab)
 2. Creates a workspace per issue
 3. Launches Codex in [App Server mode](https://developers.openai.com/codex/app-server/) inside the
    workspace
@@ -23,9 +23,9 @@ This directory contains the current Elixir/OTP implementation of Symphony, based
 
 During app-server sessions, the selected tracker adapter may advertise provider-native tools. The
 Linear serves `linear_graphql`, GitHub Issues serves `github_api`, Jira Cloud serves
-`jira_rest`, and Asana serves `asana_api`. Symphony executes those tools with configured
-host-side auth and removes declared tracker-token environment variables from the Codex child, so
-the agent does not need a second tracker login.
+`jira_rest`, Asana serves `asana_api`, and GitLab serves `gitlab_api`. Symphony executes those
+tools with configured host-side auth and removes declared tracker-token environment variables from
+the Codex child, so the agent does not need a second tracker login.
 
 If a claimed issue moves to a terminal state (`Done`, `Closed`, `Cancelled`, or `Duplicate`),
 Symphony stops the active agent for that issue and cleans up matching workspaces.
@@ -275,6 +275,14 @@ codex:
   strips `ASANA_PAT` and configured token variables from the Codex child, while raw tool calls are
   not limited to the configured project.
 
+### GitLab adapter
+
+- Configure `tracker.kind: gitlab` with `tracker.provider.project_path`, optional `api_url`, and
+  `api_key` (default `GITLAB_PAT`); use `opened` and `closed` tracker states.
+- Symphony reads project issues by IID and exposes route-safe `GL-<iid>` identifiers.
+- `gitlab_api` forwards raw GitLab REST requests with host-side auth and keeps GitLab token env vars
+  out of the Codex child.
+
 ## Web dashboard
 
 The observability UI now runs on a minimal Phoenix stack:
@@ -358,6 +366,15 @@ export SYMPHONY_LIVE_ASANA_WORKSPACE_GID=...
 # Required only when the workspace is an organization:
 # export SYMPHONY_LIVE_ASANA_TEAM_GID=...
 SYMPHONY_RUN_ASANA_LIVE_E2E=1 mix test test/symphony_elixir/asana_live_e2e_test.exs
+```
+
+Run the opt-in GitLab live E2E against a disposable project:
+
+```bash
+cd elixir
+export GITLAB_PAT=...
+export SYMPHONY_LIVE_GITLAB_PROJECT_ID=...
+SYMPHONY_RUN_GITLAB_LIVE_E2E=1 mix test test/symphony_elixir/gitlab_live_e2e_test.exs
 ```
 
 ## FAQ
